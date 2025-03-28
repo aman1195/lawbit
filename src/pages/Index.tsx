@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { FileText, Shield, CheckSquare, ExternalLink, FileCheck } from "lucide-react";
@@ -6,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Hero from "@/components/Hero";
 import Navbar from "@/components/Navbar";
 import DocumentCard from "@/components/DocumentCard";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [isVisible, setIsVisible] = useState({
@@ -214,25 +214,26 @@ const Index = () => {
                 </ul>
                 
                 <div className="mt-8">
-                  <Link
-                    to="/documents"
-                    className="inline-flex items-center text-primary font-medium hover:underline"
+                  <Button
+                    variant="outline"
+                    asChild
                   >
-                    Learn more
-                    <ExternalLink className="ml-1 h-4 w-4" />
-                  </Link>
+                    <Link
+                      to="/documents"
+                      className="inline-flex items-center"
+                    >
+                      Learn more
+                      <ExternalLink className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
               
               <div className="relative h-[400px] rounded-2xl overflow-hidden">
                 <div className="absolute inset-0 glass" />
                 <div className="absolute inset-0 p-6 flex flex-col justify-center">
-                  <div className="w-full h-2 bg-secondary rounded-full mb-6">
-                    <div className="h-full w-3/4 bg-primary rounded-full" />
-                  </div>
-                  
                   <div className="space-y-4">
-                    <div className="bg-background/50 backdrop-blur-sm p-4 rounded-lg border border-border">
+                    <div className="glass-card p-4">
                       <h4 className="text-sm font-medium mb-1">Risk Assessment</h4>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Medium risk detected</span>
@@ -242,20 +243,13 @@ const Index = () => {
                       </div>
                     </div>
                     
-                    <div className="bg-background/50 backdrop-blur-sm p-4 rounded-lg border border-border">
+                    <div className="glass-card p-4">
                       <h4 className="text-sm font-medium mb-1">Key Findings</h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
                         <li>• Non-standard termination clause</li>
                         <li>• Missing arbitration provision</li>
                         <li>• Ambiguous payment terms</li>
                       </ul>
-                    </div>
-                    
-                    <div className="bg-background/50 backdrop-blur-sm p-4 rounded-lg border border-border">
-                      <h4 className="text-sm font-medium mb-1">Recommendations</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Review termination clause and consider adding standard arbitration provision.
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -275,10 +269,10 @@ const Index = () => {
                 Examples
               </span>
               <h2 className="text-3xl md:text-4xl font-medium">
-                Example documents
+                Document analysis in action
               </h2>
               <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                See how our platform analyzes and manages different types of documents.
+                See how our platform analyzes different types of documents and provides valuable insights.
               </p>
             </div>
             
@@ -288,53 +282,23 @@ const Index = () => {
                   key={doc.id}
                   {...doc}
                   className={cn(
-                    "transition-all duration-700",
+                    "transition-all duration-700 transform",
                     isVisible.examples
                       ? "opacity-100 translate-y-0"
-                      : "opacity-0 translate-y-8"
+                      : "opacity-0 translate-y-8",
                   )}
                   style={{ transitionDelay: `${index * 150}ms` }}
-                  onView={(id) => console.log("View document", id)}
                 />
               ))}
-            </div>
-            
-            <div className="mt-12 text-center">
-              <Link
-                to="/documents"
-                className="px-6 py-3 rounded-full bg-primary text-primary-foreground font-medium shadow-sm hover:shadow-md transition-all duration-300 hover:bg-primary/90 inline-flex items-center"
-              >
-                View All Documents
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Link>
             </div>
           </div>
         </section>
       </main>
       
-      <footer className="border-t py-12 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center mb-6 md:mb-0">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center mr-2">
-              <FileCheck className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-medium">LawBit</span>
-          </div>
-          
-          <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-8">
-            <Link to="/" className="text-muted-foreground hover:text-foreground">
-              Home
-            </Link>
-            <Link to="/contracts" className="text-muted-foreground hover:text-foreground">
-              Contracts
-            </Link>
-            <Link to="/documents" className="text-muted-foreground hover:text-foreground">
-              Documents
-            </Link>
-          </div>
-          
+      <footer className="border-t py-6 px-6 md:px-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center">
           <div className="mt-6 md:mt-0 text-sm text-muted-foreground">
-            © {new Date().getFullYear()} LawBit. All rights reserved.
+            © {new Date().getFullYear()} LawBit - AI for Legal Intelligence by Ampersand.
           </div>
         </div>
       </footer>

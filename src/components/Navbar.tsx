@@ -11,7 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+import Button from "@/components/Button";
+import Header from "@/components/Header";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -57,20 +58,13 @@ const Navbar = () => {
   });
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 py-4 px-6 md:px-12 transition-all duration-300",
-        isScrolled
-          ? "glass shadow-sm backdrop-blur-xl"
-          : "bg-transparent"
-      )}
-    >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <Header>
+      <div className="max-w-7xl mx-auto flex items-center justify-between py-4">
         <Link to="/" className="flex items-center space-x-2 text-primary">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <FileCheck className="h-5 w-5 text-primary-foreground" />
+          <div className="h-full w-full rounded-lg flex items-center justify-center">
+            <img src="/images/lawbit-logo.png" alt="LawBit" className="h-20 w-full object-contain" />
           </div>
-          <span className="text-xl font-medium">LawBit</span>
+          
         </Link>
 
         {/* Desktop Navigation */}
@@ -96,48 +90,54 @@ const Navbar = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="ml-4">
-                  <User className="h-4 w-4 mr-2" />
-                  <span>Account</span>
-                </Button>
+                <Button 
+                  className="ml-4"
+                  title={
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      <span>Account</span>
+                    </div>
+                  }
+                />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="glass w-56 z-50">
                 <div className="p-2 text-sm font-medium">
                   {user.email}
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />
                   <span>Sign out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link to="/auth">
-              <Button variant="outline" size="sm">
-                Sign In
-              </Button>
-            </Link>
+            <Button
+              title="Sign In"
+              href="/auth"
+            />
           )}
         </div>
 
         {/* Mobile Menu Button */}
-        <button
-          className="md:hidden text-foreground focus:outline-none"
+        <Button
+          className="md:hidden"
+          title={
+            <div className="text-foreground">
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </div>
+          }
           onClick={toggleMobileMenu}
-          aria-label="Toggle menu"
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
-        </button>
+        />
       </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 pt-16 bg-background glass-card z-40">
+        <div className="md:hidden fixed inset-0 pt-16 bg-background/80 backdrop-blur-xl z-40">
           <div className="flex flex-col p-6 space-y-6 text-center">
             {filteredLinks.map((link) => (
               <Link
@@ -159,34 +159,34 @@ const Navbar = () => {
             ))}
             
             {user ? (
-              <button
+              <Button
+                title={
+                  <div className="flex flex-col items-center justify-center">
+                    <LogOut className="h-6 w-6 mb-1" />
+                    Sign Out
+                  </div>
+                }
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   handleSignOut();
                 }}
-                className="py-3 text-lg font-medium text-foreground/80"
-              >
-                <div className="flex flex-col items-center justify-center">
-                  <LogOut className="h-6 w-6 mb-1" />
-                  Sign Out
-                </div>
-              </button>
+              />
             ) : (
-              <Link
-                to="/auth"
-                className="py-3 text-lg font-medium text-foreground/80"
+              <Button
+                title={
+                  <div className="flex flex-col items-center justify-center">
+                    <User className="h-6 w-6 mb-1" />
+                    Sign In
+                  </div>
+                }
+                href="/auth"
                 onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <div className="flex flex-col items-center justify-center">
-                  <User className="h-6 w-6 mb-1" />
-                  Sign In
-                </div>
-              </Link>
+              />
             )}
           </div>
         </div>
       )}
-    </header>
+    </Header>
   );
 };
 

@@ -1,7 +1,7 @@
-
 import { ArrowDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Hero = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -52,27 +52,25 @@ const Hero = () => {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <Link
-            to="/contracts"
-            className="px-6 py-3 rounded-full bg-primary text-primary-foreground font-medium shadow-sm hover:shadow-md transition-all duration-300 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98]"
+          <Button
+            asChild
+            size="lg"
+            className="bg-primary hover:bg-primary/90"
           >
-            Create Contract
-          </Link>
-          <Link
-            to="/documents"
-            className="px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium shadow-sm hover:shadow-md transition-all duration-300 hover:bg-secondary/90 hover:scale-[1.02] active:scale-[0.98]"
+            <Link to="/contracts">
+              Create Contract
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
           >
-            View Documents
-          </Link>
+            <Link to="/documents">
+              View Documents
+            </Link>
+          </Button>
         </div>
-      </div>
-
-      <div
-        className={`absolute bottom-8 animate-bounce transition-all duration-700 delay-1000 ${
-          isVisible ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <ArrowDown className="h-6 w-6 text-foreground/50" />
       </div>
 
       {/* Background Elements */}

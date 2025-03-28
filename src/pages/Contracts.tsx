@@ -7,7 +7,7 @@ const Contracts = () => {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       
-      <main className="flex-grow pt-24 pb-16 px-6 md:px-12">
+      <main className="flex-grow pt-32 pb-16 px-6 md:px-12">
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
             <h1 className="text-3xl md:text-4xl font-medium mb-4">Create Contract</h1>

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Upload, FileUp, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
+import Button from "@/components/Button";
 import {
   Form,
   FormControl,
@@ -222,8 +222,8 @@ const DocumentAnalysis = () => {
                         </div>
                         <Button
                           type="button"
-                          variant="outline"
-                          size="sm"
+                          variant="default"
+                          title="Remove File"
                           onClick={(e) => {
                             e.stopPropagation();
                             setFile(null);
@@ -231,9 +231,7 @@ const DocumentAnalysis = () => {
                               fileInputRef.current.value = "";
                             }
                           }}
-                        >
-                          Remove File
-                        </Button>
+                        />
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -292,18 +290,19 @@ const DocumentAnalysis = () => {
                 
                 <Button
                   type="submit"
-                  className="w-full"
+                  variant="orange"
+                  title={
+                    isAnalyzing ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Analyzing Document...</span>
+                      </div>
+                    ) : (
+                      "Analyze Document"
+                    )
+                  }
                   disabled={isAnalyzing || (!file && !form.getValues("content"))}
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analyzing Document...
-                    </>
-                  ) : (
-                    "Analyze Document"
-                  )}
-                </Button>
+                />
               </form>
             </Form>
           </div>

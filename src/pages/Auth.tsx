@@ -5,7 +5,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { FileCheck } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import Button from "@/components/Button";
 import {
   Form,
   FormControl,
@@ -178,15 +178,16 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      variant="orange"
+                      title={
+                        loginForm.formState.isSubmitting ? (
+                          <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-current rounded-full" />
+                        ) : (
+                          "Login"
+                        )
+                      }
                       disabled={loginForm.formState.isSubmitting}
-                    >
-                      {loginForm.formState.isSubmitting ? (
-                        <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-current rounded-full" />
-                      ) : (
-                        "Login"
-                      )}
-                    </Button>
+                    />
                   </form>
                 </Form>
 
@@ -248,15 +249,16 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      variant="orange"
+                      title={
+                        signupForm.formState.isSubmitting ? (
+                          <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-current rounded-full" />
+                        ) : (
+                          "Sign Up"
+                        )
+                      }
                       disabled={signupForm.formState.isSubmitting}
-                    >
-                      {signupForm.formState.isSubmitting ? (
-                        <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-current rounded-full" />
-                      ) : (
-                        "Sign Up"
-                      )}
-                    </Button>
+                    />
                   </form>
                 </Form>
               </TabsContent>
@@ -280,24 +282,23 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full"
+                      variant="orange"
+                      title={
+                        resetForm.formState.isSubmitting ? (
+                          <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-current rounded-full" />
+                        ) : (
+                          "Reset Password"
+                        )
+                      }
                       disabled={resetForm.formState.isSubmitting}
-                    >
-                      {resetForm.formState.isSubmitting ? (
-                        <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-current rounded-full" />
-                      ) : (
-                        "Reset Password"
-                      )}
-                    </Button>
+                    />
 
                     <Button
                       type="button"
-                      variant="outline"
-                      className="w-full"
+                      variant="default"
+                      title="Back to Login"
                       onClick={() => setActiveTab("login")}
-                    >
-                      Back to Login
-                    </Button>
+                    />
                   </form>
                 </Form>
               </TabsContent>

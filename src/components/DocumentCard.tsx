@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { FileText, Trash2, ExternalLink, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RiskIndicator from "./RiskIndicator";
 import { RiskLevel } from "@/types";
+import { Button } from "@/components/ui/button";
 
 interface DocumentCardProps {
   id: string;
@@ -70,7 +70,7 @@ const DocumentCard = ({
     <div
       className={cn(
         "relative glass-card p-6 overflow-hidden transition-all duration-300",
-        isHovered && "shadow-lg",
+        isHovered && "shadow-xl bg-white/10",
         className
       )}
       style={style}
@@ -97,22 +97,24 @@ const DocumentCard = ({
 
         <div className="flex space-x-2">
           {onView && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onView(id)}
-              className="p-2 rounded-lg text-foreground/70 hover:text-foreground hover:bg-secondary transition-colors"
-              aria-label="View document"
+              className="text-foreground/70 hover:text-foreground"
             >
               <ExternalLink className="h-4 w-4" />
-            </button>
+            </Button>
           )}
           {onDelete && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onDelete(id)}
-              className="p-2 rounded-lg text-foreground/70 hover:text-destructive hover:bg-destructive/10 transition-colors"
-              aria-label="Delete document"
+              className="text-foreground/70 hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -143,8 +145,15 @@ const DocumentCard = ({
               <li key={index} className="text-muted-foreground">{finding}</li>
             ))}
             {findings.length > 3 && (
-              <li className="text-primary text-xs font-medium cursor-pointer hover:underline" onClick={() => onView && onView(id)}>
-                + {findings.length - 3} more findings
+              <li>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary text-xs font-medium p-0 h-auto hover:bg-transparent"
+                  onClick={() => onView && onView(id)}
+                >
+                  + {findings.length - 3} more findings
+                </Button>
               </li>
             )}
           </ul>
