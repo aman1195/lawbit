@@ -1,7 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface AnalysisResult {
-  findings: string[];
+  findings: {
+    text: string;
+    riskLevel: 'low' | 'medium' | 'high';
+    suggestions: string[];
+  }[];
   riskLevel: 'low' | 'medium' | 'high';
   riskScore: number;
   recommendations: string;
@@ -15,59 +20,54 @@ export const analyzeDocument = async (documentId: string, content: string): Prom
       .update({ status: 'analyzing' })
       .eq('id', documentId);
 
-    // Call OpenAI API directly
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a legal document analysis expert. Analyze the provided legal document and extract the following information:
-            1. Key findings (list of potential issues, non-standard clauses, or areas of concern)
-            2. Risk level (low, medium, or high)
-            3. Risk score (a number between 0 and 100)
-            4. Recommendations for improvement
-            
-            Return the results in JSON format with the following structure:
-            {
-              "findings": ["Finding 1", "Finding 2", ...],
-              "riskLevel": "low|medium|high",
-              "riskScore": number,
-              "recommendations": "text with recommendations"
-            }`
-          },
-          {
-            role: 'user',
-            content: content
-          }
-        ],
-      }),
-    });
+    // Initialize Gemini API
+    const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const openAiData = await response.json();
+    // Prepare the prompt
+    const prompt = `You are a legal document analysis expert. Analyze the provided legal document and extract the following information:
+    1. Key findings - for each finding provide:
+       - The finding text
+       - Risk level (low, medium, or high)
+       - 2-3 specific suggestions for improvement
+    2. Overall risk level (low, medium, or high)
+    3. Overall risk score (a number between 0 and 100)
+    4. General recommendations for improvement
     
-    if (!openAiData.choices || openAiData.choices.length === 0) {
-      throw new Error('No response from OpenAI');
+    Return the results in JSON format with the following structure:
+    {
+      "findings": [
+        {
+          "text": "Finding description",
+          "riskLevel": "low|medium|high",
+          "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
+        }
+      ],
+      "riskLevel": "low|medium|high",
+      "riskScore": number,
+      "recommendations": "text with recommendations"
     }
 
-    const analysisContent = openAiData.choices[0].message.content;
+    Document to analyze:
+    ${content}`;
+
+    // Call Gemini API
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
     let analysis: AnalysisResult;
     
     try {
       // Extract the JSON part from the response
-      const jsonMatch = analysisContent.match(/\{[\s\S]*\}/);
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysis = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error('Could not extract JSON from OpenAI response');
+        throw new Error('Could not extract JSON from Gemini response');
       }
     } catch (error) {
-      console.error('Error parsing OpenAI response:', error);
+      console.error('Error parsing Gemini response:', error);
       throw new Error('Failed to parse analysis results');
     }
 

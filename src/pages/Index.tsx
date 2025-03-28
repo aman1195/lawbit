@@ -251,6 +251,13 @@ const Index = () => {
                         <li>• Ambiguous payment terms</li>
                       </ul>
                     </div>
+                    <div className="glass-card p-4">
+                      <h4 className="text-sm font-medium mb-1">Recommendations</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>Review termination clause and consider</li>
+                        <li>adding standard arbitration provision.</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>

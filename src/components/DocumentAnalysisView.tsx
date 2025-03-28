@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Download, Copy, AlertCircle } from "lucide-react";
+import { X, Download, Copy, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import RiskIndicator from "./RiskIndicator";
 import { DocumentType, CompletedDocument } from "@/types";
+import { analyzeDocument } from "@/services/documentAnalysis";
 
 interface DocumentAnalysisViewProps {
   document: DocumentType;
@@ -13,6 +13,24 @@ interface DocumentAnalysisViewProps {
 
 const DocumentAnalysisView = ({ document, onClose }: DocumentAnalysisViewProps) => {
   const [activeTab, setActiveTab] = useState<"overview" | "document">("overview");
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const handleRetryAnalysis = async () => {
+    if (!document.body) {
+      toast.error("No document content available for analysis");
+      return;
+    }
+
+    setIsRetrying(true);
+    try {
+      await analyzeDocument(document.id, document.body);
+      toast.success("Analysis restarted successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to restart analysis");
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   const handleCopyText = () => {
     if (document.status === "completed" && document.body) {
@@ -28,7 +46,6 @@ const DocumentAnalysisView = ({ document, onClose }: DocumentAnalysisViewProps) 
 
   const handleDownload = () => {
     if (document.status === "completed" && document.body) {
-      // Use the global document object, not the document prop
       const element = window.document.createElement("a");
       const file = new Blob([document.body], { type: 'text/plain' });
       element.href = URL.createObjectURL(file);
@@ -71,6 +88,18 @@ const DocumentAnalysisView = ({ document, onClose }: DocumentAnalysisViewProps) 
           </button>
           
           <div className="ml-auto flex space-x-2">
+            {document.status === "error" && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex items-center gap-1"
+                onClick={handleRetryAnalysis}
+                disabled={isRetrying}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRetrying ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Retry Analysis</span>
+              </Button>
+            )}
             {isCompletedDocument(document) && document.body && (
               <>
                 <Button 
@@ -146,6 +175,7 @@ const DocumentAnalysisView = ({ document, onClose }: DocumentAnalysisViewProps) 
                       level={document.riskLevel} 
                       score={document.riskScore} 
                       size="lg" 
+                      
                     />
                   </div>
                   
@@ -153,11 +183,37 @@ const DocumentAnalysisView = ({ document, onClose }: DocumentAnalysisViewProps) 
                     <h4 className="text-lg font-medium">Key Findings</h4>
                     <ul className="space-y-3">
                       {document.findings && document.findings.map((finding, index) => (
-                        <li key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border">
-                          <span className="flex-shrink-0 h-5 w-5 rounded-full bg-[#FF7A00]/10 text-[#FF7A00] flex items-center justify-center mt-0.5">
-                            {index + 1}
-                          </span>
-                          <span>{finding}</span>
+                        <li key={index} className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50 border">
+                          <div className="flex items-start gap-3">
+                            <span className="flex-shrink-0 h-5 w-5 rounded-full bg-[#FF7A00]/10 text-[#FF7A00] flex items-center justify-center mt-0.5">
+                              {index + 1}
+                            </span>
+                            <div className="flex-grow">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{finding.text}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs flex-shrink-0 font-medium ${
+                                  finding.riskLevel === 'low' ? 'bg-green-100 text-green-800' :
+                                  finding.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {finding.riskLevel} Risk
+                                </span>
+                              </div>
+                              {finding.suggestions && finding.suggestions.length > 0 && (
+                                <div className="mt-2 pl-8">
+                                  <p className="text-sm text-muted-foreground mb-1">Suggested Improvements:</p>
+                                  <ul className="space-y-1">
+                                    {finding.suggestions.map((suggestion, idx) => (
+                                      <li key={idx} className="text-sm flex items-start gap-1">
+                                        <span className="text-[#FF7A00]">•</span>
+                                        <span>{suggestion}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </li>
                       ))}
                     </ul>

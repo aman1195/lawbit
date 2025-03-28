@@ -63,30 +63,34 @@ export type ErrorDocument = {
   error: string;
 };
 
-export type CompletedDocument = {
-  id: string;
-  title: string;
-  date: string;
-  status: "completed";
-  riskLevel: RiskLevel;
-  riskScore: number;
-  findings: string[];
-  recommendations?: string;
-  body?: string;
-};
+export interface Finding {
+  text: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  suggestions: string[];
+}
 
-export type DocumentType = {
+export interface DocumentType {
   id: string;
   title: string;
-  date: string;
-  status: "analyzing" | "error" | "completed";
+  body?: string;
+  status: 'analyzing' | 'completed' | 'error';
+  date?: string;
   progress?: number;
   error?: string;
-  riskLevel?: RiskLevel;
+  riskLevel?: 'low' | 'medium' | 'high';
   riskScore?: number;
-  findings?: string[];
+  findings?: Finding[];
   recommendations?: string;
-  body?: string;
+}
+
+export type CompletedDocument = DocumentType & {
+  status: 'completed';
+  body: string;
+  date: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  riskScore: number;
+  findings: Finding[];
+  recommendations: string;
 };
 
 export interface DocumentCardProps {

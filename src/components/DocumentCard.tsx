@@ -4,6 +4,23 @@ import { cn } from "@/lib/utils";
 import RiskIndicator from "./RiskIndicator";
 import { RiskLevel } from "@/types";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface Finding {
+  text: string;
+  riskLevel: RiskLevel;
+  suggestions: string[];
+}
 
 interface DocumentCardProps {
   id: string;
@@ -13,7 +30,7 @@ interface DocumentCardProps {
   progress?: number;
   riskLevel?: RiskLevel;
   riskScore?: number;
-  findings?: string[];
+  findings?: Finding[];
   recommendations?: string;
   error?: string;
   onDelete?: (id: string) => void;
@@ -39,6 +56,16 @@ const DocumentCard = ({
   style,
 }: DocumentCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await onDelete?.(id);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const getStatusIcon = () => {
     switch (status) {
@@ -69,7 +96,7 @@ const DocumentCard = ({
   return (
     <div
       className={cn(
-        "relative glass-card p-6 overflow-hidden transition-all duration-300",
+        "relative glass-card p-6 overflow-hidden transition-all duration-300 h-[400px]",
         isHovered && "shadow-xl bg-white/10",
         className
       )}
@@ -83,7 +110,7 @@ const DocumentCard = ({
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-medium text-lg leading-tight">{title}</h3>
+            <h3 className="font-medium text-lg leading-tight truncate max-w-[200px]">{title}</h3>
             <div className="flex items-center text-sm text-muted-foreground mt-1">
               <span>{date}</span>
               <span className="mx-2">•</span>
@@ -107,14 +134,36 @@ const DocumentCard = ({
             </Button>
           )}
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onDelete(id)}
-              className="text-foreground/70 hover:text-destructive hover:bg-destructive/10"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-foreground/70 hover:text-destructive hover:bg-destructive/10"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Document</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{title}"? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>
@@ -140,11 +189,42 @@ const DocumentCard = ({
       {status === "completed" && findings && findings.length > 0 && (
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Key Findings</h4>
-          <ul className="text-sm space-y-1">
-            {findings.slice(0, 3).map((finding, index) => (
-              <li key={index} className="text-muted-foreground">{finding}</li>
+          <ul className="text-sm space-y-2">
+            {findings.slice(0, 2).map((finding, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <span className="flex-shrink-0 h-5 w-5 rounded-full bg-[#FF7A00]/10 text-[#FF7A00] flex items-center justify-center mt-0.5 text-xs">
+                  {index + 1}
+                </span>
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2">
+                    <span className="text-foreground line-clamp-2">{finding.text}</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
+                      finding.riskLevel === 'low' ? 'bg-green-100 text-green-800' :
+                      finding.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {finding.riskLevel} Risk
+                    </span>
+                  </div>
+                  {finding.suggestions && finding.suggestions.length > 0 && (
+                    <ul className="mt-1 pl-7 space-y-1">
+                      {finding.suggestions.slice(0, 1).map((suggestion, idx) => (
+                        <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
+                          <span className="text-[#FF7A00]">•</span>
+                          <span className="line-clamp-1">{suggestion}</span>
+                        </li>
+                      ))}
+                      {finding.suggestions.length > 1 && (
+                        <li className="text-xs text-muted-foreground">
+                          +{finding.suggestions.length - 1} more suggestions
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              </li>
             ))}
-            {findings.length > 3 && (
+            {findings.length > 2 && (
               <li>
                 <Button
                   variant="ghost"
@@ -152,7 +232,7 @@ const DocumentCard = ({
                   className="text-primary text-xs font-medium p-0 h-auto hover:bg-transparent"
                   onClick={() => onView && onView(id)}
                 >
-                  + {findings.length - 3} more findings
+                  + {findings.length - 2} more findings
                 </Button>
               </li>
             )}

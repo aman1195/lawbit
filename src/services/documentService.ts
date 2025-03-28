@@ -17,11 +17,20 @@ export interface Document {
 }
 
 export const documentService = {
-  async createDocument(title: string, content: string) {
+  async createDocument(title: string, content: string, userId: string) {
     // First create the document
     const { data: document, error: createError } = await supabase
       .from('documents')
-      .insert([{ title, content, status: 'analyzing' }])
+      .insert([{ 
+        title, 
+        content, 
+        status: 'analyzing',
+        findings: [], // Initialize empty findings array
+        risk_level: null,
+        risk_score: null,
+        recommendations: null,
+        user_id: userId
+      }])
       .select()
       .single();
 

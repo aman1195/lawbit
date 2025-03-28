@@ -69,9 +69,24 @@ const Documents = () => {
               error: doc.error || "An unknown error occurred",
             };
           } else {
+            // Handle the findings array properly
             const findings = doc.findings ? 
               (Array.isArray(doc.findings) ? doc.findings : [String(doc.findings)]) : 
               [];
+            
+            // Convert findings to the expected format
+            const formattedFindings = findings.map(finding => {
+              if (typeof finding === 'string') {
+                // If it's a string, create a default structure
+                return {
+                  text: finding,
+                  riskLevel: 'medium' as const,
+                  suggestions: []
+                };
+              }
+              // If it's already an object, use it as is
+              return finding;
+            });
             
             return {
               id: doc.id,
@@ -80,7 +95,7 @@ const Documents = () => {
               status: "completed" as const,
               riskLevel: (doc.risk_level as RiskLevel) || "medium",
               riskScore: doc.risk_score || 50,
-              findings: findings.map(f => String(f)),
+              findings: formattedFindings,
               recommendations: doc.recommendations,
               body: doc.content,
             };
