@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/select";
 
 const formSchema = z.object({
-  title: z.string().min(1, { message: "Contract title is required" }),
   contract_type: z.string().min(1, { message: "Contract type is required" }),
   first_party_name: z.string().min(1, { message: "First party name is required" }),
   first_party_address: z.string().optional(),
@@ -35,7 +34,6 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const formFields = [
-  { name: "title", label: "What would you like to name your contract?" },
   { name: "contract_type", label: "What type of contract would you like to create?" },
   { name: "first_party_name", label: "Who is the first party?" },
   { name: "first_party_address", label: "What is the first party's address? (Optional)" },
@@ -58,7 +56,6 @@ const EnhancedContractForm = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
       contract_type: "",
       first_party_name: "",
       first_party_address: "",
@@ -80,7 +77,15 @@ const EnhancedContractForm = () => {
   const handleSubmit = async (value: string) => {
     const currentField = formFields[currentFieldIndex];
     
-    if (currentField.name !== "first_party_address" && currentField.name !== "second_party_address" && !value.trim()) {
+    // Skip validation for optional fields
+    if (currentField.name === "first_party_address" || currentField.name === "second_party_address") {
+      setFormData(prev => ({ ...prev, [currentField.name]: value }));
+      setCurrentFieldIndex(currentFieldIndex + 1);
+      return;
+    }
+
+    // Validate required fields
+    if (!value.trim()) {
       toast.error("Please enter a value");
       return;
     }
@@ -103,8 +108,13 @@ const EnhancedContractForm = () => {
       // All fields completed, generate contract
       setIsGenerating(true);
       try {
+        // Generate title based on contract type and parties
+        const contractType = CONTRACT_TYPES.find(type => type === newFormData.contract_type) || "Contract";
+        const title = `${contractType} between ${newFormData.first_party_name} and ${newFormData.second_party_name}`;
+
         const contract = await contractService.createContract({
           ...newFormData,
+          title,
           intensity: String(newFormData.intensity || 50),
           content: "Contract content will be generated here...",
           risk_level: "medium",
@@ -117,7 +127,7 @@ const EnhancedContractForm = () => {
         
         // Transform data for preview
         setPreviewData({
-          title: newFormData.title || "",
+          title,
           contractType: newFormData.contract_type || "",
           firstParty: newFormData.first_party_name || "",
           firstPartyAddress: newFormData.first_party_address || undefined,
@@ -129,11 +139,11 @@ const EnhancedContractForm = () => {
           intensity: String(newFormData.intensity || 50),
         });
         
-      setShowPreview(true);
+        setShowPreview(true);
       } catch (error) {
         toast.error("Failed to create contract");
         console.error(error);
-    } finally {
+      } finally {
         setIsGenerating(false);
       }
     }
@@ -148,24 +158,25 @@ const EnhancedContractForm = () => {
 
   const renderInput = () => {
     const currentField = formFields[currentFieldIndex];
+    const currentValue = formData[currentField.name as keyof FormValues];
     
     if (currentField.name === "contract_type") {
-  return (
+      return (
         <Select
           onValueChange={(value) => handleSubmit(value)}
-          defaultValue={formData.contract_type}
+          defaultValue={currentValue as string}
         >
           <SelectTrigger className="w-full bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0">
             <SelectValue placeholder="Select contract type" />
-                        </SelectTrigger>
-                      <SelectContent>
-                        {CONTRACT_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+          </SelectTrigger>
+          <SelectContent>
+            {CONTRACT_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       );
     }
 
@@ -177,6 +188,18 @@ const EnhancedContractForm = () => {
         onKeyPress={handleKeyPress}
         min={0}
         max={100}
+        value={currentValue as string || ""}
+        onChange={(e) => {
+          const value = e.target.value;
+          if (currentField.name === "intensity") {
+            const numValue = Number(value);
+            if (numValue >= 0 && numValue <= 100) {
+              setFormData(prev => ({ ...prev, [currentField.name]: numValue }));
+            }
+          } else {
+            setFormData(prev => ({ ...prev, [currentField.name]: value }));
+          }
+        }}
       />
     );
   };
@@ -203,13 +226,13 @@ const EnhancedContractForm = () => {
         </AnimatePresence>
 
         <div className="relative">
-          <div className="p-4 rounded-lg backdrop-blur-md bg-black/5 border border-black/5 shadow-md">
+          <div className="p-4 rounded-full backdrop-blur-md bg-white/10 border border-white/20 shadow-[0_0_15px_rgba(255,122,0,0.2)] hover:shadow-[0_0_20px_rgba(255,122,0,0.3)] transition-all duration-300">
             <div className="flex items-center gap-2">
               {currentFieldIndex > 0 && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="glass-button rounded-full p-2 hover:bg-neutral-200"
+                  className="glass-button rounded-full p-2 hover:bg-white/20 transition-colors"
                   onClick={handleBack}
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -219,22 +242,21 @@ const EnhancedContractForm = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="glass-button rounded-full p-2 hover:bg-white/20"
-                onClick={() => handleSubmit(String(form.getValues(formFields[currentFieldIndex].name as keyof FormValues)))}
+                className="glass-button rounded-full p-2 hover:bg-white/20 transition-colors"
+                onClick={() => handleSubmit(String(formData[formFields[currentFieldIndex].name as keyof FormValues] || ""))}
                 disabled={isGenerating}
               >
                 {isGenerating ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <div className="bg-orange-500 rounded-full p-2">
-
+                  <div className="bg-orange-500 rounded-full p-2 shadow-[0_0_10px_rgba(255,122,0,0.5)] hover:shadow-[0_0_15px_rgba(255,122,0,0.7)] transition-all duration-300">
                     <ArrowRight className="text-white h-5 w-5" />
                   </div>
                 )}
               </Button>
             </div>
           </div>
-          </div>
+        </div>
 
         {isGenerating && (
           <motion.div

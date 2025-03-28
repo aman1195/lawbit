@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Download, Copy, FileText } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 interface ContractViewProps {
   contract: {
@@ -70,12 +72,37 @@ const ContractView = ({ contract, onClose }: ContractViewProps) => {
       setLoading(true);
       toast.info("Preparing DOCX...");
       
-      // For now, we'll just copy the content to clipboard since we removed the Edge Function
-      await navigator.clipboard.writeText(contract.content);
-      toast.success("Contract content copied to clipboard");
+      // Create a new document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: contract.title,
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: contract.content,
+                  size: 24, // 12pt
+                }),
+              ],
+            }),
+          ],
+        }],
+      });
+
+      // Generate the DOCX file
+      const buffer = await Packer.toBlob(doc);
+      
+      // Save the file
+      saveAs(buffer, `${contract.title.replace(/\s+/g, '_')}.docx`);
+      
+      toast.success("DOCX downloaded successfully");
     } catch (error) {
-      console.error("Error copying content:", error);
-      toast.error("Failed to copy content");
+      console.error("DOCX generation error:", error);
+      toast.error("Failed to generate DOCX");
     } finally {
       setLoading(false);
     }
@@ -96,7 +123,7 @@ const ContractView = ({ contract, onClose }: ContractViewProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">{contract.title}</h2>
           <Button variant="ghost" onClick={onClose}>Close</Button>

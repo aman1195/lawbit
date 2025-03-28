@@ -7,6 +7,8 @@ import { ContractPreviewProps } from "@/types";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { contractGenerationService } from "@/services/contractGenerationService";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 const ContractPreview = ({ contract, onClose, onSaved }: ContractPreviewProps) => {
   const [saving, setSaving] = useState(false);
@@ -127,31 +129,42 @@ const ContractPreview = ({ contract, onClose, onSaved }: ContractPreviewProps) =
   };
   
   const handleDownloadDocx = async () => {
+    if (!contractRef.current) return;
+    
     try {
       toast.info("Preparing DOCX...");
       
-      const { data, error } = await supabase.functions.invoke('convert-to-docx', {
-        body: {
-          html: contractRef.current?.innerHTML,
-          filename: contract.title.replace(/\s+/g, '_')
-        }
+      // Get the text content from the contract
+      const content = contractRef.current.innerText;
+      
+      // Create a new document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: contract.title,
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: content,
+                  size: 24, // 12pt
+                }),
+              ],
+            }),
+          ],
+        }],
       });
+
+      // Generate the DOCX file
+      const buffer = await Packer.toBlob(doc);
       
-      if (error) throw error;
+      // Save the file
+      saveAs(buffer, `${contract.title.replace(/\s+/g, '_')}.docx`);
       
-      if (data && data.url) {
-        // Create a temporary link to download the file
-        const link = document.createElement('a');
-        link.href = data.url;
-        link.download = `${contract.title.replace(/\s+/g, '_')}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast.success("DOCX downloaded successfully");
-      } else {
-        throw new Error("Failed to generate DOCX");
-      }
+      toast.success("DOCX downloaded successfully");
     } catch (error: any) {
       console.error("DOCX generation error:", error);
       toast.error("Failed to generate DOCX", {
