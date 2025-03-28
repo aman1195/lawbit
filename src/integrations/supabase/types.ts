@@ -15,6 +15,8 @@ export type Database = {
           created_at: string
           description: string | null
           first_party_name: string
+          first_party_address: string | null
+          second_party_address: string | null
           id: string
           intensity: string | null
           jurisdiction: string | null
@@ -25,12 +27,15 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          content: string
         }
         Insert: {
           contract_type: string
           created_at?: string
           description?: string | null
           first_party_name: string
+          first_party_address?: string | null
+          second_party_address?: string | null
           id?: string
           intensity?: string | null
           jurisdiction?: string | null
@@ -41,12 +46,15 @@ export type Database = {
           title: string
           updated_at?: string
           user_id: string
+          content: string
         }
         Update: {
           contract_type?: string
           created_at?: string
           description?: string | null
           first_party_name?: string
+          first_party_address?: string | null
+          second_party_address?: string | null
           id?: string
           intensity?: string | null
           jurisdiction?: string | null
@@ -57,6 +65,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          content?: string
         }
         Relationships: []
       }
@@ -64,6 +73,7 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
+          error: string | null
           findings: Json | null
           id: string
           recommendations: string | null
@@ -77,6 +87,7 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
+          error?: string | null
           findings?: Json | null
           id?: string
           recommendations?: string | null
@@ -90,6 +101,7 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
+          error?: string | null
           findings?: Json | null
           id?: string
           recommendations?: string | null

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -148,6 +147,26 @@ function formatPrompt(
     8. Create a contract that would be recognized as valid in ${jurisdiction || "the appropriate jurisdiction"}
     9. Format dates as Month Day, Year (e.g., June 1, 2023)
     10. Only return the HTML for the contract, properly formatted
+    11. Include at least 10-15 sections with detailed clauses
+    12. Add standard boilerplate clauses for the specific contract type
+    13. Include definitions section at the beginning
+    14. Add dispute resolution and arbitration clauses
+    15. Include force majeure and termination clauses
+    16. Add confidentiality and non-disclosure clauses where appropriate
+    17. Include governing law and jurisdiction clauses
+    18. Add entire agreement and severability clauses
+    19. Format the contract with proper spacing and indentation
+    20. Use semantic HTML tags for better structure
+    21. Add CSS classes for styling (e.g., class="section-title", class="clause")
+    22. Include a table of contents at the beginning
+    23. Add proper page breaks for printing
+    24. Include headers and footers with page numbers
+    25. Format the signature blocks professionally
+    26. Add witness signature lines where appropriate
+    27. Include notary blocks where required
+    28. Add execution date and place
+    29. Include company seals and stamps where appropriate
+    30. Format the contract in a way that's easy to read and understand
   `;
 }
 

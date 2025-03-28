@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -47,7 +46,6 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { name: "Home", path: "/" },
     { name: "Contracts", path: "/contracts", icon: FileText, requireAuth: true },
     { name: "Documents", path: "/documents", icon: FileCheck, requireAuth: true },
     { name: "Analyze Document", path: "/document-analysis", icon: Upload, requireAuth: true },
@@ -72,7 +70,7 @@ const Navbar = () => {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <FileCheck className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-medium">RiskScan</span>
+          <span className="text-xl font-medium">LawBit</span>
         </Link>
 
         {/* Desktop Navigation */}

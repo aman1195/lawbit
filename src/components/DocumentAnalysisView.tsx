@@ -69,13 +69,6 @@ const DocumentAnalysisView = ({ document, onClose }: DocumentAnalysisViewProps) 
           >
             Overview
           </button>
-          <button 
-            className={tabClass("document")} 
-            onClick={() => setActiveTab("document")}
-            disabled={!isCompletedDocument(document) || !document.body}
-          >
-            Document Content
-          </button>
           
           <div className="ml-auto flex space-x-2">
             {isCompletedDocument(document) && document.body && (

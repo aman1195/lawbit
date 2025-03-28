@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ContractPreviewProps } from "@/types";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { contractGenerationService } from "@/services/contractGenerationService";
 
 const ContractPreview = ({ contract, onClose, onSaved }: ContractPreviewProps) => {
   const [saving, setSaving] = useState(false);
@@ -27,29 +27,16 @@ const ContractPreview = ({ contract, onClose, onSaved }: ContractPreviewProps) =
       try {
         setGenerating(true);
         
-        // Call the Supabase Edge Function to generate the contract
-        const { data, error } = await supabase.functions.invoke('generate-contract', {
-          body: {
-            contractType: contract.contractType,
-            firstParty: contract.firstParty,
-            firstPartyAddress: contract.firstPartyAddress,
-            secondParty: contract.secondParty,
-            secondPartyAddress: contract.secondPartyAddress,
-            jurisdiction: contract.jurisdiction,
-            description: contract.description,
-            keyTerms: contract.keyTerms,
-            intensity: contract.intensity,
-            aiModel: contract.aiModel || "openai"
-          }
+        // Use the new contract generation service
+        const generatedContent = await contractGenerationService.generateContract({
+          contractType: contract.contractType,
+          firstPartyName: contract.firstParty,
+          secondPartyName: contract.secondParty,
+          jurisdiction: contract.jurisdiction,
+          keyTerms: contract.keyTerms
         });
 
-        if (error) throw error;
-        
-        if (data && data.contractText) {
-          setContractContent(data.contractText);
-        } else {
-          throw new Error("Failed to generate contract content");
-        }
+        setContractContent(generatedContent);
       } catch (error: any) {
         console.error("Error generating contract:", error);
         toast.error("Error generating contract", {
@@ -78,33 +65,24 @@ const ContractPreview = ({ contract, onClose, onSaved }: ContractPreviewProps) =
     try {
       setSaving(true);
       
-      // Insert the contract data into Supabase
-      const { error } = await supabase
-        .from('contracts')
-        .insert({
-          user_id: (await supabase.auth.getUser()).data.user?.id,
-          title: contract.title,
-          contract_type: contract.contractType,
-          first_party_name: contract.firstParty,
-          first_party_address: contract.firstPartyAddress,
-          second_party_name: contract.secondParty,
-          second_party_address: contract.secondPartyAddress,
-          jurisdiction: contract.jurisdiction || null,
-          description: contract.description || null,
-          key_terms: contract.keyTerms || null,
-          intensity: contract.intensity,
-          contract_content: contractContent,
-          ai_model: contract.aiModel || "openai"
-        });
-        
-      if (error) throw error;
+      // Use the contract generation service to save the contract
+      await contractGenerationService.saveContract({
+        title: contract.title,
+        contract_type: contract.contractType,
+        first_party_name: contract.firstParty,
+        second_party_name: contract.secondParty,
+        jurisdiction: contract.jurisdiction || undefined,
+        key_terms: contract.keyTerms || undefined,
+        content: contractContent
+      });
       
       setSaved(true);
-      onSaved();
       toast.success("Contract saved successfully");
+      onSaved?.();
     } catch (error: any) {
-      toast.error("Failed to save contract", {
-        description: error.message
+      console.error("Error saving contract:", error);
+      toast.error("Error saving contract", {
+        description: error.message || "Please try again"
       });
     } finally {
       setSaving(false);

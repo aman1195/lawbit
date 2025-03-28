@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -313,7 +312,7 @@ const DocumentAnalysis = () => {
       
       <footer className="border-t py-8 px-6 md:px-12">
         <div className="max-w-7xl mx-auto text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} RiskScan. All rights reserved.
+          © {new Date().getFullYear()} LawBit. All rights reserved.
         </div>
       </footer>
     </div>

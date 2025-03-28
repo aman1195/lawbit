@@ -1,20 +1,16 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Loader2, Sparkles } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { contractService } from "@/services/contractService";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Loader2, ArrowLeft } from "lucide-react";
+import ContractPreview from "./ContractPreview";
+import { Contract, CONTRACT_TYPES, ContractPreviewProps } from "@/types";
 import {
   Select,
   SelectContent,
@@ -22,129 +18,146 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { CONTRACT_TYPES, JURISDICTIONS, AI_MODELS } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuthContext } from "@/context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import ContractPreview from "./ContractPreview";
 
 const formSchema = z.object({
-  title: z.string().min(2, {
-    message: "Title must be at least 2 characters.",
-  }),
-  contractType: z.string({
-    required_error: "Please select a contract type.",
-  }),
-  firstParty: z.string().min(2, {
-    message: "First party must be at least 2 characters.",
-  }),
-  firstPartyAddress: z.string().min(5, {
-    message: "First party address must be at least 5 characters.",
-  }),
-  secondParty: z.string().min(2, {
-    message: "Second party must be at least 2 characters.",
-  }),
-  secondPartyAddress: z.string().min(5, {
-    message: "Second party address must be at least 5 characters.",
-  }),
-  jurisdiction: z.string().optional(),
-  description: z.string().optional(),
-  keyTerms: z.string().optional(),
-  intensity: z.enum(["Light", "Moderate", "Aggressive"]).default("Moderate"),
-  aiModel: z.string().default("openai"),
+  title: z.string().min(1, { message: "Contract title is required" }),
+  contract_type: z.string().min(1, { message: "Contract type is required" }),
+  first_party_name: z.string().min(1, { message: "First party name is required" }),
+  first_party_address: z.string().optional(),
+  second_party_name: z.string().min(1, { message: "Second party name is required" }),
+  second_party_address: z.string().optional(),
+  jurisdiction: z.string().min(1, { message: "Jurisdiction is required" }),
+  description: z.string().min(1, { message: "Contract description is required" }),
+  key_terms: z.string().min(1, { message: "Key terms are required" }),
+  intensity: z.number().min(0).max(100),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
+const formFields = [
+  { name: "title", label: "What would you like to name your contract?" },
+  { name: "contract_type", label: "What type of contract would you like to create?" },
+  { name: "first_party_name", label: "Who is the first party?" },
+  { name: "first_party_address", label: "What is the first party's address? (Optional)" },
+  { name: "second_party_name", label: "Who is the second party?" },
+  { name: "second_party_address", label: "What is the second party's address? (Optional)" },
+  { name: "jurisdiction", label: "Which jurisdiction should this contract be governed by?" },
+  { name: "description", label: "Please provide a brief description of the contract" },
+  { name: "key_terms", label: "What are the key terms of this contract?" },
+  { name: "intensity", label: "How protective should this contract be? (0-100)" },
+];
+
 const EnhancedContractForm = () => {
-  const { user } = useAuthContext();
-  const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentFieldIndex, setCurrentFieldIndex] = useState(0);
+  const [formData, setFormData] = useState<Partial<FormValues>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [contractData, setContractData] = useState<FormValues | null>(null);
+  const [previewData, setPreviewData] = useState<ContractPreviewProps["contract"] | null>(null);
+  const navigate = useNavigate();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
-      contractType: "",
-      firstParty: "",
-      firstPartyAddress: "",
-      secondParty: "",
-      secondPartyAddress: "",
+      contract_type: "",
+      first_party_name: "",
+      first_party_address: "",
+      second_party_name: "",
+      second_party_address: "",
       jurisdiction: "",
       description: "",
-      keyTerms: "",
-      intensity: "Moderate",
-      aiModel: "openai",
+      key_terms: "",
+      intensity: 50,
     },
   });
 
-  const onSubmit = async (data: FormValues) => {
-    if (!user) {
-      toast.error("Authentication required", {
-        description: "Please log in to create contracts.",
-      });
+  const handleBack = () => {
+    if (currentFieldIndex > 0) {
+      setCurrentFieldIndex(currentFieldIndex - 1);
+    }
+  };
+
+  const handleSubmit = async (value: string) => {
+    const currentField = formFields[currentFieldIndex];
+    
+    if (currentField.name !== "first_party_address" && currentField.name !== "second_party_address" && !value.trim()) {
+      toast.error("Please enter a value");
       return;
     }
 
-    try {
-      setIsSubmitting(true);
-      setContractData(data);
+    // Convert value to number for intensity field
+    const fieldValue = currentField.name === "intensity" ? Number(value) : value;
+
+    // Update form data
+    const newFormData = {
+      ...formData,
+      [currentField.name]: fieldValue,
+    };
+    setFormData(newFormData);
+
+    // Move to next field
+    if (currentFieldIndex < formFields.length - 1) {
+      setCurrentFieldIndex(currentFieldIndex + 1);
+      form.setValue(currentField.name as keyof FormValues, fieldValue);
+    } else {
+      // All fields completed, generate contract
+      setIsGenerating(true);
+      try {
+        const contract = await contractService.createContract({
+          ...newFormData,
+          intensity: String(newFormData.intensity || 50),
+          content: "Contract content will be generated here...",
+          risk_level: "medium",
+          risk_score: 50,
+          first_party_address: newFormData.first_party_address || null,
+          second_party_address: newFormData.second_party_address || null,
+        } as Omit<Contract, "id" | "user_id" | "created_at" | "updated_at">);
+        
+        toast.success("Contract created successfully");
+        
+        // Transform data for preview
+        setPreviewData({
+          title: newFormData.title || "",
+          contractType: newFormData.contract_type || "",
+          firstParty: newFormData.first_party_name || "",
+          firstPartyAddress: newFormData.first_party_address || undefined,
+          secondParty: newFormData.second_party_name || "",
+          secondPartyAddress: newFormData.second_party_address || undefined,
+          jurisdiction: newFormData.jurisdiction,
+          description: newFormData.description,
+          keyTerms: newFormData.key_terms,
+          intensity: String(newFormData.intensity || 50),
+        });
+        
       setShowPreview(true);
-    } catch (error: any) {
-      toast.error("Failed to generate contract", {
-        description: error.message,
-      });
+      } catch (error) {
+        toast.error("Failed to create contract");
+        console.error(error);
     } finally {
-      setIsSubmitting(false);
+        setIsGenerating(false);
+      }
     }
   };
 
-  const handlePreviewClose = () => {
-    setShowPreview(false);
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSubmit(e.currentTarget.value);
+      e.currentTarget.value = "";
+    }
   };
 
-  const handleContractSaved = () => {
-    setTimeout(() => {
-      navigate("/documents");
-    }, 1500);
-  };
-
+  const renderInput = () => {
+    const currentField = formFields[currentFieldIndex];
+    
+    if (currentField.name === "contract_type") {
   return (
-    <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contract Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Employment Agreement" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contractType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contract Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a contract type" />
+        <Select
+          onValueChange={(value) => handleSubmit(value)}
+          defaultValue={formData.contract_type}
+        >
+          <SelectTrigger className="w-full bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0">
+            <SelectValue placeholder="Select contract type" />
                         </SelectTrigger>
-                      </FormControl>
                       <SelectContent>
                         {CONTRACT_TYPES.map((type) => (
                           <SelectItem key={type} value={type}>
@@ -153,239 +166,98 @@ const EnhancedContractForm = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      );
+    }
 
-              <FormField
-                control={form.control}
-                name="firstParty"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Party Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Your Company Name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="firstPartyAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Party Address</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="123 Business St, City, State, 12345" 
-                        className="min-h-[80px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="jurisdiction"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Jurisdiction</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a jurisdiction" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {JURISDICTIONS.map((jurisdiction) => (
-                          <SelectItem key={jurisdiction} value={jurisdiction}>
-                            {jurisdiction}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      The governing law for this contract.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="secondParty"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Second Party Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Other Party Name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="secondPartyAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Second Party Address</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="456 Partner Ave, City, State, 67890" 
-                        className="min-h-[80px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Contract Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Briefly describe what this contract should cover..."
-                        className="min-h-[120px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="keyTerms"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Key Terms (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="List any specific terms you want to include..."
-                        className="min-h-[80px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FormField
-              control={form.control}
-              name="intensity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contract Intensity</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Light">Light</SelectItem>
-                      <SelectItem value="Moderate">Moderate</SelectItem>
-                      <SelectItem value="Aggressive">Aggressive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    How protective should this contract be for the first party.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="aiModel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>AI Model</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {AI_MODELS.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name} ({model.model})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    AI model to use for generating the contract
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <Button 
-            type="submit" 
-            disabled={isSubmitting}
-            className="bg-[#FF7A00] hover:bg-[#FF7A00]/90"
+    return (
+      <Input
+        type={currentField.name === "intensity" ? "number" : "text"}
+        placeholder={currentField.name.includes("address") ? "Press Enter to skip (Optional)" : "Type your answer here..."}
+        className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        onKeyPress={handleKeyPress}
+        min={0}
+        max={100}
+      />
+    );
+  };
+ 
+  return (
+    <div className="min-h-[calc(80vh-12rem)] flex items-center justify-center p-6">
+      <div className="w-full max-w-4xl space-y-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentFieldIndex}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="text-center mb-8"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Contract...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate Contract
-              </>
-            )}
-          </Button>
-        </form>
-      </Form>
+            <h2 className="text-2xl font-medium mb-2">
+              {formFields[currentFieldIndex].label}
+            </h2>
+            <p className="text-muted-foreground">
+              {currentFieldIndex + 1} of {formFields.length}
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
-      {showPreview && contractData && (
+        <div className="relative">
+          <div className="p-4 rounded-lg backdrop-blur-md bg-black/5 border border-black/5 shadow-md">
+            <div className="flex items-center gap-2">
+              {currentFieldIndex > 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="glass-button rounded-full p-2 hover:bg-neutral-200"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              )}
+              {renderInput()}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="glass-button rounded-full p-2 hover:bg-white/20"
+                onClick={() => handleSubmit(String(form.getValues(formFields[currentFieldIndex].name as keyof FormValues)))}
+                disabled={isGenerating}
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <div className="bg-orange-500 rounded-full p-2">
+
+                    <ArrowRight className="text-white h-5 w-5" />
+                  </div>
+                )}
+              </Button>
+            </div>
+          </div>
+          </div>
+
+        {isGenerating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center"
+          >
+            <div className="inline-flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Generating your contract...</span>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {showPreview && previewData && (
         <ContractPreview 
-          contract={{
-            title: contractData.title,
-            contractType: contractData.contractType,
-            firstParty: contractData.firstParty,
-            firstPartyAddress: contractData.firstPartyAddress,
-            secondParty: contractData.secondParty,
-            secondPartyAddress: contractData.secondPartyAddress,
-            jurisdiction: contractData.jurisdiction,
-            description: contractData.description,
-            keyTerms: contractData.keyTerms,
-            intensity: contractData.intensity,
-            aiModel: contractData.aiModel
-          }} 
-          onClose={handlePreviewClose}
-          onSaved={handleContractSaved}
+          contract={previewData}
+          onClose={() => setShowPreview(false)}
+          onSaved={() => navigate("/documents")}
         />
       )}
-    </>
+    </div>
   );
 };
 

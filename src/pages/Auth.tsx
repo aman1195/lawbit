@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -126,14 +125,14 @@ const Auth = () => {
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <FileCheck className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-xl font-medium">RiskScan</span>
+          <span className="text-xl font-medium">LawBit</span>
         </Link>
       </div>
       
       <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold">Welcome to RiskScan</h1>
+            <h1 className="text-3xl font-bold">Welcome to LawBit</h1>
             <p className="text-muted-foreground mt-2">
               Intelligent legal document analysis and contract generation
             </p>

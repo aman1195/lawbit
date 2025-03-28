@@ -1,4 +1,3 @@
-
 export const CONTRACT_TYPES = [
   // Most popular agreements first
   "Non-Disclosure Agreement (NDA)",
@@ -76,7 +75,19 @@ export type CompletedDocument = {
   body?: string;
 };
 
-export type DocumentType = AnalyzingDocument | ErrorDocument | CompletedDocument;
+export type DocumentType = {
+  id: string;
+  title: string;
+  date: string;
+  status: "analyzing" | "error" | "completed";
+  progress?: number;
+  error?: string;
+  riskLevel?: RiskLevel;
+  riskScore?: number;
+  findings?: string[];
+  recommendations?: string;
+  body?: string;
+};
 
 export interface DocumentCardProps {
   id: string;
@@ -112,4 +123,24 @@ export interface ContractPreviewProps {
   };
   onClose: () => void;
   onSaved: () => void;
+}
+
+export interface Contract {
+  id: string;
+  user_id: string;
+  title: string;
+  contract_type: string;
+  first_party_name: string;
+  first_party_address: string | null;
+  second_party_name: string;
+  second_party_address: string | null;
+  jurisdiction: string | null;
+  description: string | null;
+  key_terms: string | null;
+  intensity: string;
+  risk_level: string;
+  risk_score: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
 }

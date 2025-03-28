@@ -10,19 +10,8 @@ import ContractView from "@/components/ContractView";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { DocumentType, RiskLevel } from "@/types";
+import { DocumentType, RiskLevel, Contract } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface Contract {
-  id: string;
-  title: string;
-  contract_type: string;
-  first_party_name: string;
-  second_party_name: string;
-  jurisdiction: string | null;
-  created_at: string;
-  contract_content?: string;
-}
 
 const Documents = () => {
   const { user } = useAuthContext();
@@ -46,10 +35,10 @@ const Documents = () => {
 
         if (documentsError) throw documentsError;
 
-        // Fetch contracts - remove contract_content if it doesn't exist
+        // Fetch contracts with all necessary fields
         const { data: contractsData, error: contractsError } = await supabase
           .from("contracts")
-          .select("id, title, contract_type, first_party_name, second_party_name, jurisdiction, created_at")
+          .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
@@ -77,11 +66,9 @@ const Documents = () => {
               title: doc.title,
               date,
               status: "error" as const,
-              // Use optional chaining to safely access error property that might not exist
               error: doc.error || "An unknown error occurred",
             };
           } else {
-            // Ensure findings is an array of strings
             const findings = doc.findings ? 
               (Array.isArray(doc.findings) ? doc.findings : [String(doc.findings)]) : 
               [];
@@ -101,19 +88,10 @@ const Documents = () => {
         });
 
         setDocuments(formattedDocuments);
-        
-        // Ensure contractsData is an array before setting it
-        if (Array.isArray(contractsData)) {
-          setContracts(contractsData);
-        } else {
-          console.error("Expected contractsData to be an array but got:", contractsData);
-          setContracts([]);
-        }
-      } catch (error: any) {
+        setContracts(contractsData || []);
+      } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to load data", {
-          description: error.message,
-        });
+        toast.error("Error loading documents and contracts");
       } finally {
         setLoading(false);
       }

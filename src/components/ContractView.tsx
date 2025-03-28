@@ -1,11 +1,9 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Loader2, Download, Copy, FileText } from "lucide-react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ContractViewProps {
   contract: {
@@ -15,8 +13,10 @@ interface ContractViewProps {
     first_party_name: string;
     second_party_name: string;
     jurisdiction: string | null;
+    key_terms: string | null;
+    content: string;
     created_at: string;
-    contract_content?: string;
+    updated_at: string;
   };
   onClose: () => void;
 }
@@ -70,106 +70,59 @@ const ContractView = ({ contract, onClose }: ContractViewProps) => {
       setLoading(true);
       toast.info("Preparing DOCX...");
       
-      const content = document.getElementById('contract-content');
-      
-      const { data, error } = await supabase.functions.invoke('convert-to-docx', {
-        body: {
-          html: content?.innerHTML,
-          filename: contract.title.replace(/\s+/g, '_')
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data && data.url) {
-        // Create a temporary link to download the file
-        const link = document.createElement('a');
-        link.href = data.url;
-        link.download = `${contract.title.replace(/\s+/g, '_')}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast.success("DOCX downloaded successfully");
-      } else {
-        throw new Error("Failed to generate DOCX");
-      }
-    } catch (error: any) {
-      console.error("DOCX generation error:", error);
-      toast.error("Failed to generate DOCX", {
-        description: error.message || "Please try again"
-      });
+      // For now, we'll just copy the content to clipboard since we removed the Edge Function
+      await navigator.clipboard.writeText(contract.content);
+      toast.success("Contract content copied to clipboard");
+    } catch (error) {
+      console.error("Error copying content:", error);
+      toast.error("Failed to copy content");
     } finally {
       setLoading(false);
     }
   };
   
   const handleCopy = () => {
-    const content = document.getElementById('contract-content');
-    if (!content) return;
-    
-    const contractText = content.innerText;
-    navigator.clipboard.writeText(contractText)
-      .then(() => {
-        toast.success("Contract copied to clipboard");
-      })
-      .catch(() => {
-        toast.error("Failed to copy contract");
-      });
+    navigator.clipboard.writeText(contract.content)
+      .then(() => toast.success("Contract content copied to clipboard"))
+      .catch(() => toast.error("Failed to copy content"));
   };
 
+  // Format the contract content with proper line breaks and styling
+  const formattedContent = contract.content
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n\n');
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-background rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-semibold">{contract.title}</h2>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">{contract.title}</h2>
           <Button variant="ghost" onClick={onClose}>Close</Button>
         </div>
         
-        <div className="overflow-auto p-6 flex-grow">
-          <div id="contract-content" className="max-w-3xl mx-auto">
-            {contract.contract_content ? (
-              <div dangerouslySetInnerHTML={{ __html: contract.contract_content }} />
-            ) : (
-              <div className="text-center p-10 border rounded-lg">
-                <FileText className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
-                <h3 className="text-xl font-medium mb-2">No contract content available</h3>
-                <p className="text-muted-foreground">
-                  This contract doesn't have any content saved.
-                </p>
-              </div>
-            )}
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <Button onClick={handleDownloadPDF} disabled={loading}>
+              <FileText className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+            <Button onClick={handleDownloadDocx} disabled={loading}>
+              <FileText className="mr-2 h-4 w-4" />
+              Download DOCX
+            </Button>
+            <Button onClick={handleCopy} variant="outline">
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Content
+            </Button>
           </div>
-        </div>
-        
-        <div className="p-4 border-t flex flex-wrap gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleDownloadPDF}
-            disabled={loading || !contract.contract_content}
-            className="flex items-center"
-          >
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-            PDF
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={handleDownloadDocx}
-            disabled={loading || !contract.contract_content}
-            className="flex items-center"
-          >
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
-            DOCX
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={handleCopy}
-            disabled={!contract.contract_content}
-            className="flex items-center"
-          >
-            <Copy className="h-4 w-4 mr-2" />
-            Copy
-          </Button>
+          
+          <div id="contract-content" className="prose max-w-none">
+            <div className="whitespace-pre-wrap font-serif text-base leading-relaxed">
+              {formattedContent}
+            </div>
+          </div>
         </div>
       </div>
     </div>
