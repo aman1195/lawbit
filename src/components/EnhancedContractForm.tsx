@@ -203,13 +203,13 @@ const EnhancedContractForm = () => {
         </AnimatePresence>
 
         <div className="relative">
-          <div className="p-4 rounded-lg backdrop-blur-md bg-black/5 border border-black/5 shadow-md">
+          <div className="p-4 rounded-full backdrop-blur-md bg-white/10 border border-white/20 shadow-[0_0_15px_rgba(255,122,0,0.2)] hover:shadow-[0_0_20px_rgba(255,122,0,0.3)] transition-all duration-300">
             <div className="flex items-center gap-2">
               {currentFieldIndex > 0 && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="glass-button rounded-full p-2 hover:bg-neutral-200"
+                  className="glass-button rounded-full p-2 hover:bg-white/20 transition-colors"
                   onClick={handleBack}
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -219,15 +219,14 @@ const EnhancedContractForm = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="glass-button rounded-full p-2 hover:bg-white/20"
+                className="glass-button rounded-full p-2 hover:bg-white/20 transition-colors"
                 onClick={() => handleSubmit(String(form.getValues(formFields[currentFieldIndex].name as keyof FormValues)))}
                 disabled={isGenerating}
               >
                 {isGenerating ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <div className="bg-orange-500 rounded-full p-2">
-
+                  <div className="bg-orange-500 rounded-full p-2 shadow-[0_0_10px_rgba(255,122,0,0.5)] hover:shadow-[0_0_15px_rgba(255,122,0,0.7)] transition-all duration-300">
                     <ArrowRight className="text-white h-5 w-5" />
                   </div>
                 )}
