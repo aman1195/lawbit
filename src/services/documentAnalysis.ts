@@ -27,7 +27,7 @@ export const analyzeDocument = async (documentId: string, content: string): Prom
     // Prepare the prompt
     const prompt = `You are a legal document analysis expert. Analyze the provided legal document and extract the following information:
     1. Key findings - for each finding provide:
-       - The finding text
+       - The finding text (a clear, concise description of the issue)
        - Risk level (low, medium, or high)
        - 2-3 specific suggestions for improvement
     2. Overall risk level (low, medium, or high)
@@ -65,6 +65,33 @@ export const analyzeDocument = async (documentId: string, content: string): Prom
         analysis = JSON.parse(jsonMatch[0]);
       } else {
         throw new Error('Could not extract JSON from Gemini response');
+      }
+
+      // Validate and format the findings
+      if (!Array.isArray(analysis.findings)) {
+        throw new Error('Invalid findings format');
+      }
+
+      // Ensure each finding has the correct structure
+      analysis.findings = analysis.findings.map(finding => ({
+        text: finding.text || String(finding),
+        riskLevel: finding.riskLevel || 'medium',
+        suggestions: Array.isArray(finding.suggestions) ? finding.suggestions : []
+      }));
+
+      // Validate risk level
+      if (!['low', 'medium', 'high'].includes(analysis.riskLevel)) {
+        analysis.riskLevel = 'medium';
+      }
+
+      // Validate risk score
+      if (typeof analysis.riskScore !== 'number' || analysis.riskScore < 0 || analysis.riskScore > 100) {
+        analysis.riskScore = 50;
+      }
+
+      // Ensure recommendations is a string
+      if (typeof analysis.recommendations !== 'string') {
+        analysis.recommendations = String(analysis.recommendations);
       }
     } catch (error) {
       console.error('Error parsing Gemini response:', error);

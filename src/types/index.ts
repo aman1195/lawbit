@@ -65,20 +65,21 @@ export type ErrorDocument = {
 
 export interface Finding {
   text: string;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: RiskLevel;
   suggestions: string[];
 }
 
-export interface DocumentType {
+export interface Document {
   id: string;
   title: string;
-  body?: string;
+  content: string;
+  created_at: string;
+  user_id: string;
   status: 'analyzing' | 'completed' | 'error';
-  date?: string;
   progress?: number;
   error?: string;
-  riskLevel?: 'low' | 'medium' | 'high';
-  riskScore?: number;
+  risk_level?: RiskLevel;
+  risk_score?: number;
   findings?: Finding[];
   recommendations?: string;
 }
@@ -87,7 +88,7 @@ export type CompletedDocument = DocumentType & {
   status: 'completed';
   body: string;
   date: string;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: RiskLevel;
   riskScore: number;
   findings: Finding[];
   recommendations: string;
@@ -100,7 +101,7 @@ export interface DocumentCardProps {
   status: "analyzing" | "completed" | "error";
   riskLevel?: RiskLevel;
   riskScore?: number;
-  findings?: string[];
+  findings?: Finding[];
   recommendations?: string;
   progress?: number;
   error?: string;

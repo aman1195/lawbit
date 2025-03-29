@@ -10,7 +10,7 @@ import ContractView from "@/components/ContractView";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthContext } from "@/context/AuthContext";
 import Button from "@/components/Button";
-import { DocumentType, RiskLevel, Contract } from "@/types";
+import { DocumentType, RiskLevel, Contract, Finding } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Documents = () => {
@@ -75,7 +75,7 @@ const Documents = () => {
               [];
             
             // Convert findings to the expected format
-            const formattedFindings = findings.map(finding => {
+            const formattedFindings: Finding[] = findings.map(finding => {
               if (typeof finding === 'string') {
                 // If it's a string, create a default structure
                 return {
@@ -84,8 +84,13 @@ const Documents = () => {
                   suggestions: []
                 };
               }
-              // If it's already an object, use it as is
-              return finding;
+              // If it's already an object, ensure it has the correct structure
+              const findingObj = finding as Record<string, any>;
+              return {
+                text: findingObj.text || String(finding),
+                riskLevel: (findingObj.riskLevel || 'medium') as RiskLevel,
+                suggestions: Array.isArray(findingObj.suggestions) ? findingObj.suggestions : []
+              };
             });
             
             return {

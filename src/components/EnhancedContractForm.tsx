@@ -105,26 +105,12 @@ const EnhancedContractForm = () => {
       setCurrentFieldIndex(currentFieldIndex + 1);
       form.setValue(currentField.name as keyof FormValues, fieldValue);
     } else {
-      // All fields completed, generate contract
-      setIsGenerating(true);
+      // All fields completed, show preview
       try {
         // Generate title based on contract type and parties
         const contractType = CONTRACT_TYPES.find(type => type === newFormData.contract_type) || "Contract";
         const title = `${contractType} between ${newFormData.first_party_name} and ${newFormData.second_party_name}`;
 
-        const contract = await contractService.createContract({
-          ...newFormData,
-          title,
-          intensity: String(newFormData.intensity || 50),
-          content: "Contract content will be generated here...",
-          risk_level: "medium",
-          risk_score: 50,
-          first_party_address: newFormData.first_party_address || null,
-          second_party_address: newFormData.second_party_address || null,
-        } as Omit<Contract, "id" | "user_id" | "created_at" | "updated_at">);
-        
-        toast.success("Contract created successfully");
-        
         // Transform data for preview
         setPreviewData({
           title,
@@ -141,10 +127,8 @@ const EnhancedContractForm = () => {
         
         setShowPreview(true);
       } catch (error) {
-        toast.error("Failed to create contract");
+        toast.error("Failed to prepare contract preview");
         console.error(error);
-      } finally {
-        setIsGenerating(false);
       }
     }
   };

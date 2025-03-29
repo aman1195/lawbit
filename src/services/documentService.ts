@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { analyzeDocument } from './documentAnalysis';
+import { Document, Finding } from '../types/database.types';
 
 export interface Document {
   id: string;
@@ -17,29 +18,39 @@ export interface Document {
 }
 
 export const documentService = {
-  async createDocument(title: string, content: string, userId: string) {
-    // First create the document
-    const { data: document, error: createError } = await supabase
+  async createDocument(userId: string, title: string, content: string) {
+    const { data, error } = await supabase
       .from('documents')
-      .insert([{ 
-        title, 
-        content, 
-        status: 'analyzing',
-        findings: [], // Initialize empty findings array
-        risk_level: null,
-        risk_score: null,
-        recommendations: null,
-        user_id: userId
-      }])
+      .insert([
+        {
+          title,
+          content,
+          user_id: userId,
+          status: 'analyzing',
+          progress: 0,
+          findings: [] as Finding[],
+          risk_level: null,
+          risk_score: null,
+          recommendations: null
+        }
+      ])
       .select()
       .single();
 
-    if (createError) throw createError;
+    if (error) throw error;
+    return data;
+  },
 
-    // Start analysis in the background
-    analyzeDocument(document.id, content).catch(console.error);
+  async updateDocument(id: string, updates: Partial<Document>) {
+    const { data, error } = await supabase
+      .from('documents')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    return document;
+    if (error) throw error;
+    return data;
   },
 
   async getDocuments() {

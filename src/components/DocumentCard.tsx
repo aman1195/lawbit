@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { FileText, Trash2, ExternalLink, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { FileText, Trash2, ExternalLink, AlertCircle, CheckCircle, Clock, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RiskIndicator from "./RiskIndicator";
-import { RiskLevel } from "@/types";
+import { RiskLevel, Finding } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -15,12 +15,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-interface Finding {
-  text: string;
-  riskLevel: RiskLevel;
-  suggestions: string[];
-}
 
 interface DocumentCardProps {
   id: string;
@@ -44,10 +38,10 @@ const DocumentCard = ({
   title,
   date,
   status,
-  progress = 0,
-  riskLevel = "low",
+  progress,
+  riskLevel,
   riskScore,
-  findings = [],
+  findings,
   recommendations,
   error,
   onDelete,
@@ -70,11 +64,11 @@ const DocumentCard = ({
   const getStatusIcon = () => {
     switch (status) {
       case "analyzing":
-        return <Clock className="h-4 w-4 text-blue-500" />;
+        return <Loader2 className="h-5 w-5 animate-spin" />;
       case "completed":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <Check className="h-5 w-5" />;
       case "error":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-5 w-5" />;
       default:
         return null;
     }
@@ -93,6 +87,28 @@ const DocumentCard = ({
     }
   };
 
+  // Helper function to format findings
+  const formatFindings = (rawFindings: any[]): Finding[] => {
+    return rawFindings.map(finding => {
+      if (typeof finding === 'string') {
+        return {
+          text: finding,
+          riskLevel: 'medium' as const,
+          suggestions: []
+        };
+      }
+      const findingObj = finding as Record<string, any>;
+      return {
+        text: findingObj.text || String(finding),
+        riskLevel: (findingObj.riskLevel || 'medium') as RiskLevel,
+        suggestions: Array.isArray(findingObj.suggestions) ? findingObj.suggestions : []
+      };
+    });
+  };
+
+  // Format findings if they exist
+  const formattedFindings = findings ? formatFindings(findings) : undefined;
+
   return (
     <div
       className={cn(
@@ -106,8 +122,8 @@ const DocumentCard = ({
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary mr-3">
-            <FileText className="h-5 w-5" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#FF7A00]/10 text-[#FF7A00] mr-3">
+            {getStatusIcon()}
           </div>
           <div>
             <h3 className="font-medium text-lg leading-tight truncate max-w-[200px]">{title}</h3>
@@ -115,7 +131,6 @@ const DocumentCard = ({
               <span>{date}</span>
               <span className="mx-2">•</span>
               <div className="flex items-center">
-                {getStatusIcon()}
                 <span className="ml-1">{getStatusText()}</span>
               </div>
             </div>
@@ -123,12 +138,12 @@ const DocumentCard = ({
         </div>
 
         <div className="flex space-x-2">
-          {onView && (
+          {status === "completed" && (
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onView(id)}
-              className="text-foreground/70 hover:text-foreground"
+              onClick={() => onView?.(id)}
+              className="text-foreground/70 hover:text-[#FF7A00] hover:bg-[#FF7A00]/10"
             >
               <ExternalLink className="h-4 w-4" />
             </Button>
@@ -169,28 +184,28 @@ const DocumentCard = ({
       </div>
 
       {status === "analyzing" && (
-        <div className="mb-4">
-          <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+        <div className="mt-4">
+          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+              className="h-full bg-[#FF7A00] rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress || 0}%` }}
             ></div>
           </div>
-          <div className="text-xs text-muted-foreground mt-1 text-right">{progress}% complete</div>
+          <div className="text-xs text-muted-foreground mt-1 text-right">{progress || 0}% complete</div>
         </div>
       )}
 
       {status === "completed" && riskLevel && (
-        <div className="mb-4">
+        <div className="mt-4">
           <RiskIndicator level={riskLevel} score={riskScore} />
         </div>
       )}
 
-      {status === "completed" && findings && findings.length > 0 && (
+      {status === "completed" && formattedFindings && formattedFindings.length > 0 && (
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Key Findings</h4>
           <ul className="text-sm space-y-2">
-            {findings.slice(0, 2).map((finding, index) => (
+            {formattedFindings.slice(0, 2).map((finding, index) => (
               <li key={index} className="flex items-start gap-2">
                 <span className="flex-shrink-0 h-5 w-5 rounded-full bg-[#FF7A00]/10 text-[#FF7A00] flex items-center justify-center mt-0.5 text-xs">
                   {index + 1}
@@ -224,7 +239,7 @@ const DocumentCard = ({
                 </div>
               </li>
             ))}
-            {findings.length > 2 && (
+            {formattedFindings.length > 2 && (
               <li>
                 <Button
                   variant="ghost"
@@ -232,7 +247,7 @@ const DocumentCard = ({
                   className="text-primary text-xs font-medium p-0 h-auto hover:bg-transparent"
                   onClick={() => onView && onView(id)}
                 >
-                  + {findings.length - 2} more findings
+                  + {formattedFindings.length - 2} more findings
                 </Button>
               </li>
             )}
