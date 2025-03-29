@@ -12,6 +12,7 @@ import { useAuthContext } from "@/context/AuthContext";
 import Button from "@/components/Button";
 import { DocumentType, RiskLevel, Contract, Finding } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { documentService } from "@/services/documentService";
 
 const Documents = () => {
   const { user } = useAuthContext();
@@ -45,67 +46,19 @@ const Documents = () => {
         if (contractsError) throw contractsError;
 
         // Format documents
-        const formattedDocuments: DocumentType[] = documentsData.map(doc => {
-          const date = new Date(doc.created_at).toLocaleDateString('en-US', { 
-            month: 'long', 
-            day: 'numeric', 
-            year: 'numeric' 
-          });
-
-          if (doc.status === "analyzing") {
-            return {
-              id: doc.id,
-              title: doc.title,
-              date,
-              status: "analyzing" as const,
-              progress: 65, // Placeholder progress value
-            };
-          } else if (doc.status === "error") {
-            return {
-              id: doc.id,
-              title: doc.title,
-              date,
-              status: "error" as const,
-              error: doc.error || "An unknown error occurred",
-            };
-          } else {
-            // Handle the findings array properly
-            const findings = doc.findings ? 
-              (Array.isArray(doc.findings) ? doc.findings : [String(doc.findings)]) : 
-              [];
-            
-            // Convert findings to the expected format
-            const formattedFindings: Finding[] = findings.map(finding => {
-              if (typeof finding === 'string') {
-                // If it's a string, create a default structure
-                return {
-                  text: finding,
-                  riskLevel: 'medium' as const,
-                  suggestions: []
-                };
-              }
-              // If it's already an object, ensure it has the correct structure
-              const findingObj = finding as Record<string, any>;
-              return {
-                text: findingObj.text || String(finding),
-                riskLevel: (findingObj.riskLevel || 'medium') as RiskLevel,
-                suggestions: Array.isArray(findingObj.suggestions) ? findingObj.suggestions : []
-              };
-            });
-            
-            return {
-              id: doc.id,
-              title: doc.title,
-              date,
-              status: "completed" as const,
-              riskLevel: (doc.risk_level as RiskLevel) || "medium",
-              riskScore: doc.risk_score || 50,
-              findings: formattedFindings,
-              recommendations: doc.recommendations,
-              body: doc.content,
-            };
-          }
-        });
+        const formattedDocuments: DocumentType[] = documentsData.map(doc => ({
+          id: doc.id,
+          title: doc.title,
+          date: doc.created_at,
+          status: doc.status as "analyzing" | "completed" | "error",
+          progress: doc.status === "analyzing" ? 50 : undefined,
+          error: doc.error || undefined,
+          riskLevel: doc.risk_level as "low" | "medium" | "high" | undefined,
+          riskScore: doc.risk_score || undefined,
+          findings: formatFindings(doc.findings),
+          recommendations: doc.recommendations || undefined,
+          body: doc.content || undefined
+        }));
 
         setDocuments(formattedDocuments);
         setContracts(contractsData || []);
@@ -120,25 +73,36 @@ const Documents = () => {
     fetchData();
   }, [user]);
 
+  const formatFindings = (findings: any): Finding[] => {
+    if (!findings) return [];
+    
+    return findings.map((finding: any) => {
+      // If finding is already in the correct format
+      if (typeof finding === 'object' && 'text' in finding && 'riskLevel' in finding && 'suggestions' in finding) {
+        return {
+          text: finding.text,
+          riskLevel: finding.riskLevel as "low" | "medium" | "high",
+          suggestions: Array.isArray(finding.suggestions) ? finding.suggestions : []
+        };
+      }
+      
+      // If finding is a string or has a different format
+      return {
+        text: typeof finding === 'string' ? finding : 'Unknown finding',
+        riskLevel: 'medium',
+        suggestions: []
+      };
+    });
+  };
+
   const handleDeleteDocument = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("documents")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-      
-      setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== id));
-      
-      toast("Document deleted", {
-        description: "The document has been removed from your list",
-      });
-    } catch (error: any) {
+      await documentService.deleteDocument(id);
+      setDocuments(documents.filter(doc => doc.id !== id));
+      toast.success("Document deleted successfully");
+    } catch (error) {
       console.error("Error deleting document:", error);
-      toast.error("Failed to delete document", {
-        description: error.message,
-      });
+      toast.error("Failed to delete document");
     }
   };
 
@@ -184,6 +148,53 @@ const Documents = () => {
 
   const handleCloseContractView = () => {
     setSelectedContract(null);
+  };
+
+  const loadDocuments = async () => {
+    try {
+      const data = await documentService.getDocuments();
+      
+      // Format the documents to match DocumentType interface
+      const formattedDocuments: DocumentType[] = data.map(doc => {
+        // Format findings to match the Finding interface
+        const formattedFindings: Finding[] = doc.findings ? 
+          (Array.isArray(doc.findings) ? doc.findings : [String(doc.findings)]).map(finding => {
+            if (typeof finding === 'object' && 'text' in finding && 'riskLevel' in finding && 'suggestions' in finding) {
+              return {
+                text: String(finding.text),
+                riskLevel: finding.riskLevel as "low" | "medium" | "high",
+                suggestions: Array.isArray(finding.suggestions) ? finding.suggestions.map(String) : []
+              };
+            }
+            return {
+              text: typeof finding === 'string' ? finding : String(finding),
+              riskLevel: 'medium',
+              suggestions: []
+            };
+          }) : [];
+
+        return {
+          id: doc.id,
+          title: doc.title,
+          date: doc.created_at,
+          status: doc.status as "analyzing" | "completed" | "error",
+          progress: doc.status === "analyzing" ? 50 : undefined,
+          error: doc.error || undefined,
+          riskLevel: doc.risk_level as "low" | "medium" | "high" | undefined,
+          riskScore: doc.risk_score || undefined,
+          findings: formattedFindings,
+          recommendations: doc.recommendations || undefined,
+          body: doc.content || undefined
+        };
+      });
+
+      setDocuments(formattedDocuments);
+    } catch (error) {
+      console.error("Error loading documents:", error);
+      toast.error("Failed to load documents");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -274,8 +285,8 @@ const Documents = () => {
                       recommendations={doc.status === "completed" ? doc.recommendations : undefined}
                       progress={doc.status === "analyzing" ? doc.progress : undefined}
                       error={doc.status === "error" ? doc.error : undefined}
-                      onDelete={() => handleDeleteDocument(doc.id)}
-                      onView={() => handleViewDocument(doc.id)}
+                      onDelete={handleDeleteDocument}
+                      onView={handleViewDocument}
                     />
                   ))}
                 </div>

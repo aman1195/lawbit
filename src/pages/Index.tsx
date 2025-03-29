@@ -6,6 +6,7 @@ import Hero from "@/components/Hero";
 import Navbar from "@/components/Navbar";
 import DocumentCard from "@/components/DocumentCard";
 import { Button } from "@/components/ui/button";
+import { DocumentType, RiskLevel, Contract, Finding } from "@/types";
 
 const Index = () => {
   const [isVisible, setIsVisible] = useState({
@@ -94,6 +95,28 @@ const Index = () => {
       ],
     },
   ];
+
+  const formatFindings = (findings: any): Finding[] => {
+    if (!findings) return [];
+    
+    return findings.map((finding: any) => {
+      // If finding is already in the correct format
+      if (typeof finding === 'object' && 'text' in finding && 'riskLevel' in finding && 'suggestions' in finding) {
+        return {
+          text: String(finding.text),
+          riskLevel: finding.riskLevel as "low" | "medium" | "high",
+          suggestions: Array.isArray(finding.suggestions) ? finding.suggestions.map(String) : []
+        };
+      }
+      
+      // If finding is a string or has a different format
+      return {
+        text: typeof finding === 'string' ? finding : String(finding),
+        riskLevel: 'medium',
+        suggestions: []
+      };
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -287,7 +310,13 @@ const Index = () => {
               {exampleDocuments.map((doc, index) => (
                 <DocumentCard
                   key={doc.id}
-                  {...doc}
+                  id={doc.id}
+                  title={doc.title}
+                  date={doc.date}
+                  status={doc.status}
+                  riskLevel={doc.riskLevel}
+                  riskScore={doc.riskScore}
+                  findings={formatFindings(doc.findings)}
                   className={cn(
                     "transition-all duration-700 transform",
                     isVisible.examples
